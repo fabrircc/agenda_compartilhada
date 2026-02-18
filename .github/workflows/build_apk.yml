@@ -29,37 +29,31 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Instalar Dependências
-      run: |
-        pip install flet
-        # Não precisamos instalar requirements.txt se só usarmos o flet aqui
+    - name: Instalar Flet
+      run: pip install flet
 
     - name: Restaurar Chave do Firebase
       run: echo '${{ secrets.FIREBASE_JSON }}' > firebase_key.json
 
-    # --- O TRUQUE DE MESTRE COMEÇA AQUI ---
-    
-    - name: Gerar Chave de Assinatura (Fake Key)
+    # --- CORREÇÃO 1: Aceitar Licenças do Android ---
+    - name: Aceitar Licenças Android
       run: |
-        keytool -genkeypair -v \
-          -keystore release.keystore \
-          -alias mykeyalias \
-          -keyalg RSA -keysize 2048 -validity 10000 \
-          -storepass password123 \
-          -keypass password123 \
-          -dname "CN=Fabricio App, OU=IT, O=MyOrg, L=Uberlandia, S=MG, C=BR"
+        yes | flutter doctor --android-licenses
 
-    - name: Construir APK (Release Assinado)
-      # Agora passamos a chave para o Flet. Ele vai achar que é um build oficial!
+    # --- CORREÇÃO 2: Gerar Código em Pasta Específica ---
+    # Usamos 'app_native' como nome fixo para não ter erro de pasta
+    - name: Gerar Estrutura do App
       run: |
-        yes | flet build apk --verbose \
-          --android-signing-key-store release.keystore \
-          --android-signing-key-store-password password123 \
-          --android-signing-key-alias mykeyalias \
-          --android-signing-key-password password123
+        yes | flet build apk --project app_native --verbose
+
+    # --- CORREÇÃO 3: Compilar em Modo Debug (Sem erros de R8/Minify) ---
+    - name: Compilar APK (Flutter Debug)
+      run: |
+        cd app_native
+        flutter build apk --debug --verbose
 
     - name: Upload do APK
       uses: actions/upload-artifact@v4
       with:
-        name: agenda-app-release
-        path: build/apk/build/app/outputs/flutter-apk/app-release.apk
+        name: agenda-app-debug
+        path: app_native/build/app/outputs/flutter-apk/app-debug.apk
