@@ -67,9 +67,9 @@ jobs:
           --android-signing-key-store-password password123 \
           --android-signing-key-alias mykeyalias \
           --android-signing-key-password password123
-
-   - name: Upload do APK
+          - name: Upload do APK
       uses: actions/upload-artifact@v4
       with:
         name: agenda-app-release
         path: "**/*.apk"
+
