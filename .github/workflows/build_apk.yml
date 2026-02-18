@@ -38,7 +38,7 @@ jobs:
       run: echo '${{ secrets.FIREBASE_JSON }}' > firebase_key.json
 
     - name: Construir APK
-      run: yes | flet build apk -- debug --verbose
+      run: yes | flet build apk --debug
 
     - name: Upload do APK
       uses: actions/upload-artifact@v4
