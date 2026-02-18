@@ -37,11 +37,19 @@ jobs:
     - name: Restaurar Chave do Firebase
       run: echo '${{ secrets.FIREBASE_JSON }}' > firebase_key.json
 
-    - name: Construir APK
-      run: yes | flet build apk --debug
+   # Passo 1: Gerar a estrutura do projeto (sem compilar ainda)
+    - name: Gerar Código Nativo
+      run: yes | flet build apk --project
 
+    # Passo 2: Usar o Flutter para compilar em modo Debug (aceita tudo!)
+    - name: Construir APK Debug (Flutter)
+      run: |
+        cd build/apk
+        flutter build apk --debug
+
+    # Passo 3: Salvar o APK gerado (o caminho muda um pouquinho)
     - name: Upload do APK
       uses: actions/upload-artifact@v4
       with:
-        name: agenda-app-release
-        path: build/apk/*.apk
+        name: agenda-app-debug
+        path: build/apk/build/app/outputs/flutter-apk/app-debug.apk
