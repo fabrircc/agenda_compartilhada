@@ -29,19 +29,22 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Instalar Dependências
-      run: |
-        pip install flet
+    - name: Instalar Flet
+      run: pip install flet
 
     - name: Restaurar Chave do Firebase
       run: echo '${{ secrets.FIREBASE_JSON }}' > firebase_key.json
 
-    # --- PASSO CRÍTICO 1: Aceitar Licenças do Android ---
-    - name: Aceitar Licenças Android
+    # --- O PULO DO GATO: Assinatura Manual das Licenças ---
+    # Criamos a pasta e os arquivos com os códigos de aceitação (Hashes) oficiais do Google
+    - name: Forçar Aceite de Licenças
       run: |
-        yes | flutter doctor --android-licenses
+        mkdir -p "$ANDROID_HOME/licenses"
+        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
+        echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+        yes | flutter doctor --android-licenses || true
 
-    # --- PASSO CRÍTICO 2: Gerar Chave de Assinatura Temporária ---
+    # --- Criar Keystore Falsa (Para o modo Release funcionar) ---
     - name: Gerar Keystore
       run: |
         keytool -genkeypair -v \
@@ -52,8 +55,7 @@ jobs:
           -keypass password123 \
           -dname "CN=Fabricio, OU=IT, O=MyOrg, L=Uberlandia, S=MG, C=BR"
 
-    # --- PASSO CRÍTICO 3: Construir APK Release Assinado ---
-    # O 'yes' garante que qualquer pergunta do Flet seja aceita
+    # --- Construir APK (Agora vai!) ---
     - name: Construir APK
       run: |
         yes | flet build apk --verbose \
