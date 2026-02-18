@@ -37,20 +37,20 @@ jobs:
     - name: Restaurar Chave do Firebase
       run: echo '${{ secrets.FIREBASE_JSON }}' > firebase_key.json
 
-  # Passo 1: Gerar a estrutura na pasta 'agenda_app'
-    # O "|| true" garante que o robô continue mesmo se o Flet reclamar de algo no final
+ # Passo 1: Deixa o Flet gerar a estrutura na pasta padrão (build/apk)
+    # O "|| true" ainda está aqui para ignorar erros de compilação Release
     - name: Gerar Código Nativo
-      run: yes | flet build apk --project agenda_app || true
+      run: yes | flet build apk || true
 
-    # Passo 2: Entrar na pasta e compilar com Flutter em modo DEBUG
+    # Passo 2: Entra na pasta PADRÃO e compila em Debug
     - name: Construir APK Debug (Flutter)
       run: |
-        cd agenda_app
+        cd build/apk
         flutter build apk --debug
 
-    # Passo 3: Salvar o arquivo gerado
+    # Passo 3: Salva o APK do caminho padrão
     - name: Upload do APK
       uses: actions/upload-artifact@v4
       with:
         name: agenda-app-debug
-        path: agenda_app/build/app/outputs/flutter-apk/app-debug.apk
+        path: build/apk/build/app/outputs/flutter-apk/app-debug.apk
