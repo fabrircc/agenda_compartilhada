@@ -35,7 +35,7 @@ jobs:
     - name: Restaurar Chave do Firebase
       run: echo '${{ secrets.FIREBASE_JSON }}' > firebase_key.json
 
-    # --- PASSO 1: Forçar Aceite de Licenças (Funcionou!) ---
+    # --- PASSO 1: Garantir Aceite de Licenças ---
     - name: Forçar Aceite de Licenças
       run: |
         mkdir -p "$ANDROID_HOME/licenses"
@@ -43,10 +43,9 @@ jobs:
         echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
         yes | flutter doctor --android-licenses || true
 
-    # --- PASSO 2: Gerar Keystore (Usando caminho absoluto) ---
+    # --- PASSO 2: Gerar Keystore (Chave de Assinatura) ---
     - name: Gerar Keystore
       run: |
-        # $(pwd) pega o caminho completo da pasta atual
         keytool -genkeypair -v \
           -keystore $(pwd)/release.keystore \
           -alias mykeyalias \
@@ -55,10 +54,9 @@ jobs:
           -keypass password123 \
           -dname "CN=Fabricio, OU=IT, O=MyOrg, L=Uberlandia, S=MG, C=BR"
 
-    # --- PASSO 3: Construir APK (Passando o endereço completo da chave) ---
+    # --- PASSO 3: Construir APK (Processo Demorado ~15min) ---
     - name: Construir APK
       run: |
-        # Salva o caminho absoluto numa variável
         KEY_PATH=$(pwd)/release.keystore
         echo "Usando chave em: $KEY_PATH"
         
@@ -67,9 +65,11 @@ jobs:
           --android-signing-key-store-password password123 \
           --android-signing-key-alias mykeyalias \
           --android-signing-key-password password123
-          - name: Upload do APK
+
+    # --- PASSO 4: Upload (Correção "Curinga") ---
+    # O "**/*.apk" manda o GitHub procurar em TODAS as pastas por qualquer arquivo APK
+    - name: Upload do APK
       uses: actions/upload-artifact@v4
       with:
         name: agenda-app-release
         path: "**/*.apk"
-
