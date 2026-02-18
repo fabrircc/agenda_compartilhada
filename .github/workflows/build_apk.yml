@@ -29,31 +29,41 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Instalar Flet
-      run: pip install flet
+    - name: Instalar Dependências
+      run: |
+        pip install flet
 
     - name: Restaurar Chave do Firebase
       run: echo '${{ secrets.FIREBASE_JSON }}' > firebase_key.json
 
-    # --- CORREÇÃO 1: Aceitar Licenças do Android ---
+    # --- PASSO CRÍTICO 1: Aceitar Licenças do Android ---
     - name: Aceitar Licenças Android
       run: |
         yes | flutter doctor --android-licenses
 
-    # --- CORREÇÃO 2: Gerar Código em Pasta Específica ---
-    # Usamos 'app_native' como nome fixo para não ter erro de pasta
-    - name: Gerar Estrutura do App
+    # --- PASSO CRÍTICO 2: Gerar Chave de Assinatura Temporária ---
+    - name: Gerar Keystore
       run: |
-        yes | flet build apk --project app_native --verbose
+        keytool -genkeypair -v \
+          -keystore release.keystore \
+          -alias mykeyalias \
+          -keyalg RSA -keysize 2048 -validity 10000 \
+          -storepass password123 \
+          -keypass password123 \
+          -dname "CN=Fabricio, OU=IT, O=MyOrg, L=Uberlandia, S=MG, C=BR"
 
-    # --- CORREÇÃO 3: Compilar em Modo Debug (Sem erros de R8/Minify) ---
-    - name: Compilar APK (Flutter Debug)
+    # --- PASSO CRÍTICO 3: Construir APK Release Assinado ---
+    # O 'yes' garante que qualquer pergunta do Flet seja aceita
+    - name: Construir APK
       run: |
-        cd app_native
-        flutter build apk --debug --verbose
+        yes | flet build apk --verbose \
+          --android-signing-key-store release.keystore \
+          --android-signing-key-store-password password123 \
+          --android-signing-key-alias mykeyalias \
+          --android-signing-key-password password123
 
     - name: Upload do APK
       uses: actions/upload-artifact@v4
       with:
-        name: agenda-app-debug
-        path: app_native/build/app/outputs/flutter-apk/app-debug.apk
+        name: agenda-app-release
+        path: build/apk/build/app/outputs/flutter-apk/app-release.apk
