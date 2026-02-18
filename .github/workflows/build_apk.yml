@@ -35,8 +35,7 @@ jobs:
     - name: Restaurar Chave do Firebase
       run: echo '${{ secrets.FIREBASE_JSON }}' > firebase_key.json
 
-    # --- O PULO DO GATO: Assinatura Manual das Licenças ---
-    # Criamos a pasta e os arquivos com os códigos de aceitação (Hashes) oficiais do Google
+    # --- PASSO 1: Forçar Aceite de Licenças (Funcionou!) ---
     - name: Forçar Aceite de Licenças
       run: |
         mkdir -p "$ANDROID_HOME/licenses"
@@ -44,22 +43,27 @@ jobs:
         echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
         yes | flutter doctor --android-licenses || true
 
-    # --- Criar Keystore Falsa (Para o modo Release funcionar) ---
+    # --- PASSO 2: Gerar Keystore (Usando caminho absoluto) ---
     - name: Gerar Keystore
       run: |
+        # $(pwd) pega o caminho completo da pasta atual
         keytool -genkeypair -v \
-          -keystore release.keystore \
+          -keystore $(pwd)/release.keystore \
           -alias mykeyalias \
           -keyalg RSA -keysize 2048 -validity 10000 \
           -storepass password123 \
           -keypass password123 \
           -dname "CN=Fabricio, OU=IT, O=MyOrg, L=Uberlandia, S=MG, C=BR"
 
-    # --- Construir APK (Agora vai!) ---
+    # --- PASSO 3: Construir APK (Passando o endereço completo da chave) ---
     - name: Construir APK
       run: |
+        # Salva o caminho absoluto numa variável
+        KEY_PATH=$(pwd)/release.keystore
+        echo "Usando chave em: $KEY_PATH"
+        
         yes | flet build apk --verbose \
-          --android-signing-key-store release.keystore \
+          --android-signing-key-store "$KEY_PATH" \
           --android-signing-key-store-password password123 \
           --android-signing-key-alias mykeyalias \
           --android-signing-key-password password123
