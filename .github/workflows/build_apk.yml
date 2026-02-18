@@ -1,1 +1,47 @@
 name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do código
+      uses: actions/checkout@v4
+
+    - name: Configurar Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Configurar Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+
+    - name: Configurar Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Instalar Dependências
+      run: |
+        pip install flet
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Restaurar Chave do Firebase
+      run: echo '${{ secrets.FIREBASE_JSON }}' > firebase_key.json
+
+    - name: Construir APK
+      run: flet build apk --verbose
+
+    - name: Upload do APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: agenda-app-release
+        path: build/apk/*.apk
