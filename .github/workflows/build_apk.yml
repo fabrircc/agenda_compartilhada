@@ -32,25 +32,34 @@ jobs:
     - name: Instalar Dependências
       run: |
         pip install flet
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        # Não precisamos instalar requirements.txt se só usarmos o flet aqui
 
     - name: Restaurar Chave do Firebase
       run: echo '${{ secrets.FIREBASE_JSON }}' > firebase_key.json
 
- # Passo 1: Deixa o Flet gerar a estrutura na pasta padrão (build/apk)
-    # O "|| true" ainda está aqui para ignorar erros de compilação Release
-    - name: Gerar Código Nativo
-      run: yes | flet build apk || true
-
-    # Passo 2: Entra na pasta PADRÃO e compila em Debug
-    - name: Construir APK Debug (Flutter)
+    # --- O TRUQUE DE MESTRE COMEÇA AQUI ---
+    
+    - name: Gerar Chave de Assinatura (Fake Key)
       run: |
-        cd build/apk
-        flutter build apk --debug
+        keytool -genkeypair -v \
+          -keystore release.keystore \
+          -alias mykeyalias \
+          -keyalg RSA -keysize 2048 -validity 10000 \
+          -storepass password123 \
+          -keypass password123 \
+          -dname "CN=Fabricio App, OU=IT, O=MyOrg, L=Uberlandia, S=MG, C=BR"
 
-    # Passo 3: Salva o APK do caminho padrão
+    - name: Construir APK (Release Assinado)
+      # Agora passamos a chave para o Flet. Ele vai achar que é um build oficial!
+      run: |
+        yes | flet build apk --verbose \
+          --android-signing-key-store release.keystore \
+          --android-signing-key-store-password password123 \
+          --android-signing-key-alias mykeyalias \
+          --android-signing-key-password password123
+
     - name: Upload do APK
       uses: actions/upload-artifact@v4
       with:
-        name: agenda-app-debug
-        path: build/apk/build/app/outputs/flutter-apk/app-debug.apk
+        name: agenda-app-release
+        path: build/apk/build/app/outputs/flutter-apk/app-release.apk
